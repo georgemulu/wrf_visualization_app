@@ -96,11 +96,7 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
             gdf = gpd.read_file(COUNTY_SHAPEFILE_PATH)
             counties = ShapelyFeature(Reader(COUNTY_SHAPEFILE_PATH).geometries(), ccrs.PlateCarree(), edgecolor='black', facecolor='none')
             ax.add_feature(counties, linewidth=0.8)
-            for _, row in gdf.iterrows():
-                if row.geometry.centroid.is_empty:
-                    continue
-                x, y = row.geometry.centroid.x, row.geometry.centroid.y
-                ax.text(x, y, row['NAME_1'], fontsize=6, ha='center', va='center', transform=ccrs.PlateCarree())
+            ax.set_title(f"{var_type} at {pressure_level} hPa" if pressure_level else var_type, fontsize=16)
         except Exception as e:
             st.warning(f"Could not load counties: {e}")
 

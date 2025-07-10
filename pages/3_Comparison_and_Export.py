@@ -1,6 +1,6 @@
 import streamlit as st
 from dateutil.parser import parse
-from config import FILE_PATH
+from config import FILE_PATH,CMAP_OPTIONS
 from data_loader import load_wrf_data, get_available_variables
 from wrf import getvar, ALL_TIMES
 from plot_utils import create_plot, save_figure
@@ -24,16 +24,18 @@ if nc:
         pressure_level = st.selectbox("Select Pressure Level", pressure_levels)
 
     col1, col2 = st.columns(2)
-
+    cmap_group = selected_var_name.split(' ')[0] if selected_var_name != 'Relative Humidity' else 'Humidity'
+    cmap_options = CMAP_OPTIONS.get(cmap_group)
+    selected_cmap = st.selectbox("Select Colormap", cmap_options)
     with col1:
-        fig1, _ = create_plot(nc, selected_var_name, time_idx, 'viridis', pressure_level)
+        fig1, _ = create_plot(nc, selected_var_name, time_idx, selected_cmap, pressure_level)
         if fig1:
             st.pyplot(fig1)
             st.caption(f"Current: {selected_time_str}")
 
     with col2:
         if time_idx < len(time_strs) - 1:
-            fig2, _ = create_plot(nc, selected_var_name, time_idx+1, 'viridis', pressure_level)
+            fig2, _ = create_plot(nc, selected_var_name, time_idx+1, selected_cmap, pressure_level)
             if fig2:
                 st.pyplot(fig2)
                 st.caption(f"Next: {time_strs[time_idx+1]}")
