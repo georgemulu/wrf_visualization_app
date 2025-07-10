@@ -35,16 +35,18 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
                 v = interplevel(v, p, pressure_level)
                 wind_speed = np.sqrt(u**2 + v**2)
 
-            levels = np.linspace(0, 50, 16)
-            contour = ax.contourf(lons, lats, wind_speed, levels=levels, cmap=cmap,
-                                  transform=ccrs.PlateCarree(), extend='max')
+            # --- DRAW BACKGROUND FEATURES ---
+            ax.add_feature(cfeature.OCEAN.with_scale('10m'), facecolor='lightblue')
+            ax.add_feature(cfeature.LAKES.with_scale('10m'), facecolor='lightblue', edgecolor='blue')
+            ax.add_feature(cfeature.LAND.with_scale('10m'), facecolor='#e0dccd')  # light beige land
+            
             skip = (slice(None, None, 5), slice(None, None, 5))
-            arrow_color = 'grey' if cmap in ['viridis', 'YlOrRd', 'YlGnBu'] else 'white'
-            ax.quiver(to_np(lons[skip]), to_np(lats[skip]), 
-                      to_np(u[skip]), to_np(v[skip]), 
-                      transform=ccrs.PlateCarree(), scale=100, 
-                      color=arrow_color, width=0.002)
-            plt.colorbar(contour, ax=ax, label=f'Wind Speed (m/s) at {pressure_level} hPa' if pressure_level else 'Wind Speed (m/s)')
+            
+            ax.barbs(to_np(lons[skip]), to_np(lats[skip]),
+                    to_np(u[skip]), to_np(v[skip]),
+                    length=6, color='black', linewidth=0.5,
+                    transform=ccrs.PlateCarree()
+                    )
             current_data = wind_speed
 
         elif 'Temperature' in var_type:

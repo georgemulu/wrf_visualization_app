@@ -24,7 +24,7 @@ if nc:
         pressure_level = st.selectbox("Select Pressure Level", pressure_levels)
 
     cmap_group = selected_var_name.split(' ')[0]
-    cmap = st.selectbox("Colormap", CMAP_OPTIONS.get(cmap_group, ['viridis']))
+    cmap = st.selectbox("Colormap", CMAP_OPTIONS.get(cmap_group))
 
     fig, _ = create_plot(nc, selected_var_name, time_idx, cmap, pressure_level)
     if fig:
