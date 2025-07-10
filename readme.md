@@ -48,7 +48,9 @@ Update the FILE_PATH and COUNTY_SHAPEFILE_PATH in config.py to your local datase
 Confirm the NetCDF file is a valid WRF output file.
 
 📍 **Note**
+
 This app is designed for WRF outputs specific to Kenya and includes built-in handling of pressure-level variables and 2D surface values. Customize the anomaly logic or styling further as needed.
 
 📧 **Support**
+
 For help or feature requests, feel free to open an issue or reach out.
