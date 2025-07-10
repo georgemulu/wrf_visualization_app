@@ -33,22 +33,22 @@ This is a multi-page Streamlit application for visualizing meteorological data f
 - python-dateutil
 
 Install dependencies using:
-
+```
 pip install -r requirements.txt
-
-🚀 Running the App
-
+```
+🚀 **Running the App**
+```
 cd wrf_visualization_app
 streamlit run app.py
-
+```
 Make sure to:
 
 Update the FILE_PATH and COUNTY_SHAPEFILE_PATH in config.py to your local dataset and shapefile paths.
 
 Confirm the NetCDF file is a valid WRF output file.
 
-📍 Note
+📍 **Note**
 This app is designed for WRF outputs specific to Kenya and includes built-in handling of pressure-level variables and 2D surface values. Customize the anomaly logic or styling further as needed.
 
-📧 Support
+📧 **Support**
 For help or feature requests, feel free to open an issue or reach out.
