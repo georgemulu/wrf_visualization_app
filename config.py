@@ -5,7 +5,6 @@ STANDARD_PRESSURE_LEVELS = [1000, 850, 700, 500, 300, 200]
 
 CMAP_OPTIONS = {
     'Temperature': ['coolwarm', 'viridis', 'cividis'],
-    'Wind': ['YlOrRd', 'YlGnBu', 'Spectral_r'],
     'Rainfall': ['Blues', 'GnBu', 'coolwarm'],
     'Humidity': ['viridis', 'YlGnBu']
 }
