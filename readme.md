@@ -34,7 +34,7 @@ This is a multi-page Streamlit application for visualizing meteorological data f
 
 Install dependencies using:
 ```
-pip install -r requirements.txt
+conda env create -f environment.yaml
 ```
 🚀 **Running the App**
 ```
