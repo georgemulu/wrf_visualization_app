@@ -18,28 +18,11 @@ This is a multi-page Streamlit application for visualizing meteorological data f
 - Compare two consecutive time steps side-by-side.
 - Export generated plots as PNG.
 
----
-
-## 📁 App Structure
-
-wrf_visualization_app/
-├── app.py # Main launcher page
-├── config.py # Configuration (paths, colormaps, etc.)
-├── data_loader.py # Functions to load WRF and shapefile data
-├── plot_utils.py # Plot generation and figure export
-├── pages/
-│ ├── 1_Visualizer.py # Main variable visualizer
-│ ├── 2_Stats_and_Anomalies.py # Statistics and anomaly detection
-│ └── 3_Comparison_and_Export.py # Time comparison and image export
-└── .streamlit/
-└── config.toml # Streamlit theme customization
-
-
----
+--
 
 ## 🛠️ Requirements
 
-- Python 3.8+
+- Python 3.10.17
 - Streamlit
 - wrf-python
 - netCDF4
