@@ -1,14 +1,14 @@
 import streamlit as st
 import numpy as np
 from dateutil.parser import parse
-from config import FILE_PATH
+from config import FILE_ID
 from data_loader import load_wrf_data, get_available_variables
 from wrf import getvar, ALL_TIMES
 from plot_utils import create_plot
 
 st.title("📊 Variable Stats & Anomaly Detection")
 
-nc = load_wrf_data(FILE_PATH)
+nc = load_wrf_data(FILE_ID)
 if nc:
     available_vars, pressure_levels = get_available_variables(nc)
     times = getvar(nc, 'times', timeidx=ALL_TIMES)
