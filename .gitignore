@@ -5,9 +5,5 @@ credentials.json
 _pycache_/*
 drive.* data_loader.py config. __pycache__ app.py client_secrets.json config.py credentials.json data_loader.py drive_auth.py environment.yaml pages plot_utils.py readme.md temp.nc
 temp.nc
-<<<<<<< HEAD
-*.nc
-=======
 *.n
 _pycache_/config.*
->>>>>>> add_google-auth
