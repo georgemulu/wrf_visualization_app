@@ -1,14 +1,23 @@
 from netCDF4 import Dataset
 from wrf import getvar
 import streamlit as st
-from config import STANDARD_PRESSURE_LEVELS
+from config import STANDARD_PRESSURE_LEVELS, FILE_ID, LOAD_FROM_DRIVE
+from drive_auth import authenticate_drive
+import os
 
-def load_wrf_data(file_path):
-    try:
-        return Dataset(file_path)
-    except Exception as e:
-        st.error(f"Error loading file: {e}")
-        return None
+@st.cache_resource
+def load_wrf_data(file_path_or_id):
+    if LOAD_FROM_DRIVE:
+        return load_netcdf_from_drive(file_path_or_id)
+    else:
+        return Dataset(file_path_or_id)
+
+def load_netcdf_from_drive(file_id):
+    drive = authenticate_drive()
+    file = drive.CreateFile({'id': file_id})
+    temp_path = "temp.nc"
+    file.GetContentFile(temp_path)
+    return Dataset(temp_path)
 
 def get_available_variables(nc):
     available = []
