@@ -7,3 +7,4 @@ drive.* data_loader.py config. __pycache__ app.py client_secrets.json config.py 
 temp.nc
 *.n
 _pycache_/config.*
+gadm41_KEN_1.*
