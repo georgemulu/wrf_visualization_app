@@ -1,5 +1,5 @@
 import streamlit as st
-from config import FILE_ID, CMAP_OPTIONS, COUNTY_SHAPEFILE_PATH
+from config import FILE_ID, CMAP_OPTIONS
 from data_loader import load_wrf_data, get_available_variables
 from wrf import getvar, ALL_TIMES
 from dateutil.parser import parse
