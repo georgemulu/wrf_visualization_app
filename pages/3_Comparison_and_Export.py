@@ -1,6 +1,6 @@
 import streamlit as st
 from dateutil.parser import parse
-from config import FILE_ID,CMAP_OPTIONS
+from config import FILE_ID,CMAP_OPTIONS,CMAP_OPTIONS
 from data_loader import load_wrf_data, get_available_variables
 from wrf import getvar, ALL_TIMES
 from plot_utils import create_plot, save_figure
