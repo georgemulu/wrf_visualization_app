@@ -1,9 +1,7 @@
 from netCDF4 import Dataset
-from wrf import getvar
 import streamlit as st
-from config import STANDARD_PRESSURE_LEVELS, FILE_ID, LOAD_FROM_DRIVE
+from config import STANDARD_PRESSURE_LEVELS, LOAD_FROM_DRIVE
 from drive_auth import authenticate_drive
-import os
 
 @st.cache_resource
 def load_wrf_data(file_path_or_id):

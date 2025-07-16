@@ -3,11 +3,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dateutil.parser import parse
 <<<<<<< HEAD
+<<<<<<< HEAD
 from config import FILE_ID
 =======
 from scipy import stats
 from config import FILE_PATH
 >>>>>>> upstream/main
+=======
+from scipy import stats
+from config import FILE_ID
+>>>>>>> add_google-auth
 from data_loader import load_wrf_data, get_available_variables
 from wrf import getvar, ALL_TIMES
 
@@ -22,8 +27,11 @@ st.set_page_config(
 )
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 nc = load_wrf_data(FILE_ID)
 =======
+=======
+>>>>>>> add_google-auth
 # --------------------------
 # Custom CSS Styling
 # --------------------------
@@ -92,9 +100,14 @@ st.markdown("""
 # --------------------------
 # Data Loading
 # --------------------------
+<<<<<<< HEAD
 nc = load_wrf_data(FILE_PATH)
 
 >>>>>>> upstream/main
+=======
+nc = load_wrf_data(FILE_ID)
+
+>>>>>>> add_google-auth
 if nc:
     # --------------------------
     # Control Panel
