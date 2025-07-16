@@ -93,7 +93,6 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
         ax.gridlines(draw_labels=True)
 
         try:
-            gdf = gpd.read_file(COUNTY_SHAPEFILE_PATH)
             counties = ShapelyFeature(Reader(COUNTY_SHAPEFILE_PATH).geometries(), ccrs.PlateCarree(), edgecolor='black', facecolor='none')
             ax.add_feature(counties, linewidth=0.8)
             ax.set_title(f"{var_type} at {pressure_level} hPa" if pressure_level else var_type, fontsize=16)
