@@ -42,27 +42,58 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
             
             skip = (slice(None, None, 5), slice(None, None, 5))
             
-            ax.barbs(to_np(lons[skip]), to_np(lats[skip]),
-                    to_np(u[skip]), to_np(v[skip]),
+            subset = 10
+            ax.barbs(to_np(lons[::subset, ::subset]), to_np(lats[::subset, ::subset]),
+                    to_np(u[::subset, ::subset]), to_np(v[::subset, ::subset]),
                     length=6, color='black', linewidth=0.5,
                     transform=ccrs.PlateCarree()
                     )
             current_data = wind_speed
 
         elif 'Temperature' in var_type:
-            if var_type == 'Temperature (2m)':
-                temp = getvar(nc, 'T2', timeidx=time_idx) - 273.15
-            else:
-                tk = getvar(nc, 'tk', timeidx=time_idx)
-                p = getvar(nc, 'pressure', timeidx=time_idx)
-                temp = interplevel(tk, p, pressure_level) - 273.15
-            levels = np.linspace(np.min(temp), np.max(temp), 20)
-            contour = ax.contourf(lons, lats, temp, levels=levels, cmap=cmap, transform=ccrs.PlateCarree())
-            plt.colorbar(contour, ax=ax, label=f'Temperature (°C) at {pressure_level} hPa' if pressure_level else 'Temperature (°C)')
-            current_data = temp
+            try:
+                if var_type == 'Temperature (2m)':
+                    temp = getvar(nc, 'T2', timeidx=time_idx) - 273.15
+                else:
+                    if 'tk' in nc.variables:
+                        temp_var = getvar(nc, 'tk', timeidx=time_idx)
+                    elif 'T' in nc.variables:
+                        temp_var = getvar(nc, 'T', timeidx=time_idx)
+                    else:
+                            raise ValueError("No temperature variable (tk or T) found")
+                        
+                    p = getvar(nc, 'pressure', timeidx=time_idx)
+                        
+                    # Validate pressure data
+                    if p is None or np.all(np.isnan(p)):
+                        raise ValueError("Invalid pressure data")
+                            
+                    if pressure_level is None:
+                        raise ValueError("Pressure level required for upper-air temperature")
+                            
+                    valid_range = (np.nanmin(p), np.nanmax(p))
+                    if not valid_range[0] <= pressure_level <= valid_range[1]:
+                        raise ValueError(f"Pressure level {pressure_level}hPa outside valid range {valid_range}")
+                    
+                    # Perform interpolation
+                    temp = interplevel(temp_var, p, pressure_level) - 273.15
+                
+                # Create plot
+                levels = np.linspace(np.min(temp), np.max(temp), 20)
+                contour = ax.contourf(lons, lats, temp, levels=levels, cmap=cmap,
+                                    transform=ccrs.PlateCarree())
+                plt.colorbar(contour, ax=ax,
+                            label=f'Temperature (°C) at {pressure_level} hPa'
+                            if pressure_level else 'Temperature (°C)')
+                current_data = temp
+                
+            except Exception as e:
+                st.error(f"Temperature plotting failed: {str(e)}")
+                return None, None
 
         elif var_type == 'Rainfall':
-            rain = getvar(nc, 'RAINNC', timeidx=time_idx)
+            rain = getvar(nc, 'RAINNC', timeidx=time_idx) if 'RAINNC'in nc.variables else 0
+            rain+=getvar(nc, 'RAINC', timeidx=time_idx) if 'RAINC' in nc.variables else 0
             levels = np.linspace(0, 50, 11)
             contour = ax.contourf(lons, lats, rain, levels=levels, cmap=cmap, transform=ccrs.PlateCarree(), extend='max')
             plt.colorbar(contour, ax=ax, label='Rainfall (mm)')
