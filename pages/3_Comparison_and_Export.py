@@ -90,20 +90,20 @@ if nc:
 
             st.dataframe(compare_df, use_container_width=True)
 
-            # === Download Stats Button ===
-            excel_buf = io.BytesIO()
-            with pd.ExcelWriter(excel_buf, engine='xlsxwriter') as writer:
-                compare_df.to_excel(writer, index=False, sheet_name="Comparison_Stats")
-            excel_buf.seek(0)
+        #     # === Download Stats Button ===
+        #     #excel_buf = io.BytesIO()
+        #     with pd.ExcelWriter(excel_buf, engine='xlsxwriter') as writer:
+        #         compare_df.to_excel(writer, index=False, sheet_name="Comparison_Stats")
+        #     excel_buf.seek(0)
 
-            st.download_button(
-                label="📥 Download Comparison Stats",
-                data=excel_buf.getvalue(),
-                file_name="comparison_stats.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        else:
-            st.warning("No data found within the selected county boundaries.")
+        #     st.download_button(
+        #         label="📥 Download Comparison Stats",
+        #         data=excel_buf.getvalue(),
+        #         file_name="comparison_stats.xlsx",
+        #         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        #     )
+        # else:
+        #     st.warning("No data found within the selected county boundaries.")
 
     # === Download First Plot ===
     if fig1:
@@ -111,3 +111,9 @@ if nc:
         clean_time = parse(selected_time_str1).strftime("%Y%m%d_%H%M")
         filename = f"{selected_var_name.replace(' ', '_')}_{clean_time}.png"
         st.download_button("🖼️ Download Time Step 1 Plot", data=buf, file_name=filename, mime="image/png")
+    # === Download Second Plot ===
+    if fig2:                    
+        buf = save_figure(fig2)
+        clean_time = parse(selected_time_str2).strftime("%Y%m%d_%H%M")
+        filename = f"{selected_var_name.replace(' ', '_')}_{clean_time}.png"
+        st.download_button("🖼️ Download Time Step 2 Plot", data=buf, file_name=filename, mime="image/png")
