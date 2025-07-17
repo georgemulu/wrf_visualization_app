@@ -49,26 +49,60 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
                 v = interplevel(v, p, pressure_level)
 
             skip = (slice(None, None, 5), slice(None, None, 5))
-            ax.barbs(
-                to_np(lons[skip]), to_np(lats[skip]),
-                to_np(u[skip]), to_np(v[skip]),
-                length=6, color='black', linewidth=0.5,
-                transform=ccrs.PlateCarree()
-            )
+            
+            subset = 10
+            ax.barbs(to_np(lons[::subset, ::subset]), to_np(lats[::subset, ::subset]),
+                    to_np(u[::subset, ::subset]), to_np(v[::subset, ::subset]),
+                    length=6, color='black', linewidth=0.5,
+                    transform=ccrs.PlateCarree()
+                    )
             current_data = data
-            label = f"Wind Speed (m/s) at {pressure_level} hPa" if pressure_level else "Wind Speed (10m)"
 
         # === TEMPERATURE ===
         elif 'Temperature' in var_type:
-            data = get_temperature(nc, time_idx, level=pressure_level if 'pressure' in var_type else None)
-            levels = np.linspace(np.min(data), np.max(data), 20)
-            contour = ax.contourf(lons, lats, data, levels=levels, cmap=cmap, transform=ccrs.PlateCarree())
-            plt.colorbar(contour, ax=ax, label=f'Temperature (°C) at {pressure_level} hPa' if pressure_level else 'Temperature (2m) (°C)')
-            current_data = data
+            try:
+                if var_type == 'Temperature (2m)':
+                    temp = getvar(nc, 'T2', timeidx=time_idx) - 273.15
+                else:
+                    if 'tk' in nc.variables:
+                        temp_var = getvar(nc, 'tk', timeidx=time_idx)
+                    elif 'T' in nc.variables:
+                        temp_var = getvar(nc, 'T', timeidx=time_idx)
+                    else:
+                            raise ValueError("No temperature variable (tk or T) found")
+                        
+                    p = getvar(nc, 'pressure', timeidx=time_idx)
+                        
+                    # Validate pressure data
+                    if p is None or np.all(np.isnan(p)):
+                        raise ValueError("Invalid pressure data")
+                            
+                    if pressure_level is None:
+                        raise ValueError("Pressure level required for upper-air temperature")
+                            
+                    valid_range = (np.nanmin(p), np.nanmax(p))
+                    if not valid_range[0] <= pressure_level <= valid_range[1]:
+                        raise ValueError(f"Pressure level {pressure_level}hPa outside valid range {valid_range}")
+                    
+                    # Perform interpolation
+                    temp = interplevel(temp_var, p, pressure_level) - 273.15
+                
+                # Create plot
+                levels = np.linspace(np.min(temp), np.max(temp), 20)
+                contour = ax.contourf(lons, lats, temp, levels=levels, cmap=cmap,
+                                    transform=ccrs.PlateCarree())
+                plt.colorbar(contour, ax=ax,
+                            label=f'Temperature (°C) at {pressure_level} hPa'
+                            if pressure_level else 'Temperature (°C)')
+                current_data = temp
+                
+            except Exception as e:
+                st.error(f"Temperature plotting failed: {str(e)}")
+                return None, None
 
-        # === RAINFALL ===
-        elif 'Rainfall' in var_type:
-            data = get_rainfall(nc, time_idx)
+        elif var_type == 'Rainfall':
+            rain = getvar(nc, 'RAINNC', timeidx=time_idx) if 'RAINNC'in nc.variables else 0
+            rain+=getvar(nc, 'RAINC', timeidx=time_idx) if 'RAINC' in nc.variables else 0
             levels = np.linspace(0, 50, 11)
             contour = ax.contourf(lons, lats, data, levels=levels, cmap=cmap, transform=ccrs.PlateCarree(), extend='max')
             plt.colorbar(contour, ax=ax, label='Rainfall (mm)')
