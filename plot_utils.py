@@ -49,7 +49,6 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
                 v = interplevel(v, p, pressure_level)
 
             skip = (slice(None, None, 5), slice(None, None, 5))
-<<<<<<< HEAD
             
             subset = 10
             ax.barbs(to_np(lons[::subset, ::subset]), to_np(lats[::subset, ::subset]),
@@ -57,21 +56,10 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
                     length=6, color='black', linewidth=0.5,
                     transform=ccrs.PlateCarree()
                     )
-            current_data = wind_speed
-=======
-            ax.barbs(
-                to_np(lons[skip]), to_np(lats[skip]),
-                to_np(u[skip]), to_np(v[skip]),
-                length=6, color='black', linewidth=0.5,
-                transform=ccrs.PlateCarree()
-            )
             current_data = data
-            label = f"Wind Speed (m/s) at {pressure_level} hPa" if pressure_level else "Wind Speed (10m)"
->>>>>>> main
 
         # === TEMPERATURE ===
         elif 'Temperature' in var_type:
-<<<<<<< HEAD
             try:
                 if var_type == 'Temperature (2m)':
                     temp = getvar(nc, 'T2', timeidx=time_idx) - 273.15
@@ -115,17 +103,6 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
         elif var_type == 'Rainfall':
             rain = getvar(nc, 'RAINNC', timeidx=time_idx) if 'RAINNC'in nc.variables else 0
             rain+=getvar(nc, 'RAINC', timeidx=time_idx) if 'RAINC' in nc.variables else 0
-=======
-            data = get_temperature(nc, time_idx, level=pressure_level if 'pressure' in var_type else None)
-            levels = np.linspace(np.min(data), np.max(data), 20)
-            contour = ax.contourf(lons, lats, data, levels=levels, cmap=cmap, transform=ccrs.PlateCarree())
-            plt.colorbar(contour, ax=ax, label=f'Temperature (°C) at {pressure_level} hPa' if pressure_level else 'Temperature (2m) (°C)')
-            current_data = data
-
-        # === RAINFALL ===
-        elif 'Rainfall' in var_type:
-            data = get_rainfall(nc, time_idx)
->>>>>>> main
             levels = np.linspace(0, 50, 11)
             contour = ax.contourf(lons, lats, data, levels=levels, cmap=cmap, transform=ccrs.PlateCarree(), extend='max')
             plt.colorbar(contour, ax=ax, label='Rainfall (mm)')
