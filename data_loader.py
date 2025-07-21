@@ -23,10 +23,10 @@ def get_available_variables(nc):
         available.append(('Wind Speed (10m)', 'surface'))
     if 'T2' in nc.variables:
         available.append(('Temperature (2m)', 'surface'))
-    if 'RAINNC' in nc.variables:
-        available.append(('Rainfall', 'surface'))
+    if 'RAINNC' in nc.variables or 'RAINC' in nc.variable:
+        available.append(('Rainfall', 'surface'))   
     if 'Q2' in nc.variables or 'RH2' in nc.variables:
-        available.append(('Humidity (2m)', 'surface'))
+        available.append(('Humidity (2m)', 'surface'))    
     if all(var in nc.variables for var in ['U', 'V']):
         available.append(('Wind Speed', 'pressure'))
     if 'T' in nc.variables:
