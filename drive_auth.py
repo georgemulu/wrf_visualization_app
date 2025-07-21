@@ -2,22 +2,29 @@ from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 
 def authenticate_drive():
-    gauth = GoogleAuth()
+    gauth = GoogleAuth(settings={
+        "client_config_backend": "file",
+        "client_config_file": "client_secrets.json",
 
-    # ✅ SETUP BACKEND CONFIGURATION HERE
-    gauth.settings['client_config_backend'] = 'file'
-    gauth.settings['client_config_file'] = 'client_secrets.json'  # Must match your filename
+        "save_credentials": True,
+        "save_credentials_backend": "file",
+        "save_credentials_file": "credentials.json",
 
-    # Optional but recommended: set location to save credentials
-    gauth.settings['save_credentials'] = True
-    gauth.settings['save_credentials_backend'] = 'file'
-    gauth.settings['save_credentials_file'] = 'credentials.json'
+        "oauth_scope": [
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/drive.file"
+        ],
+        "get_refresh_token": True,  # 🔁 Important!
+        "oauth_flow_params": {
+            "access_type": "offline",  # 🔁 CRITICAL!
+            "prompt": "consent"        # 🔁 Forces fresh consent to get refresh_token
+        }
+    })
 
-    # ✅ Now load saved credentials if available
     try:
         gauth.LoadCredentialsFile("credentials.json")
     except:
-        pass  # Skip error if file doesn't exist
+        pass
 
     if gauth.credentials is None:
         gauth.LocalWebserverAuth()
