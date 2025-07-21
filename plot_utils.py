@@ -49,13 +49,12 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
                 v = interplevel(v, p, pressure_level)
 
             skip = (slice(None, None, 5), slice(None, None, 5))
-            
-            subset = 10
-            ax.barbs(to_np(lons[::subset, ::subset]), to_np(lats[::subset, ::subset]),
-                    to_np(u[::subset, ::subset]), to_np(v[::subset, ::subset]),
-                    length=6, color='black', linewidth=0.5,
-                    transform=ccrs.PlateCarree()
-                    )
+            ax.barbs(
+                to_np(lons[skip]), to_np(lats[skip]),
+                to_np(u[skip]), to_np(v[skip]),
+                length=4, color='black', linewidth=0.5,
+                transform=ccrs.PlateCarree()
+            )
             current_data = data
 
         # === TEMPERATURE ===
@@ -137,6 +136,16 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
             gdf = gpd.read_file(COUNTY_SHAPEFILE_PATH)
             counties = ShapelyFeature(Reader(COUNTY_SHAPEFILE_PATH).geometries(), ccrs.PlateCarree(), edgecolor='black', facecolor='none')
             ax.add_feature(counties, linewidth=0.8)
+            # Add county names at centroids
+            # for _, row in gdf.iterrows():
+            #     centroid = row.geometry.centroid
+            #     county_name = row.get('NAME_1') or row.get('NAME')  # Adjust to actual column name
+            #     if county_name:
+            #         ax.text(
+            #             centroid.x, centroid.y, county_name,
+            #             fontsize=6, color='black', weight='normal',
+            #             transform=ccrs.PlateCarree(), ha='center', va='center'
+            #         )
         except Exception as e:
             st.warning(f"Could not load counties: {e}")
 
