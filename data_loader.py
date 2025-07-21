@@ -24,7 +24,7 @@ def get_available_variables(nc):
         available.append(('Humidity (2m)', 'surface'))
     if all(var in nc.variables for var in ['U', 'V']):
         available.append(('Wind Speed', 'pressure'))
-    if all(var in nc.variables for var in ['tk', 'T']):
+    if 'T' in nc.variables:
         available.append(('Temperature', 'pressure'))
     if 'RH' in nc.variables:
         available.append(('Relative Humidity', 'pressure'))
@@ -53,12 +53,22 @@ def get_rainfall(ncfile, timeidx):
 
 def get_temperature(ncfile, timeidx, level=None):
     if level:  # pressure-level temperature
-        tk = getvar(ncfile, "tk", timeidx=timeidx)
+        theta = getvar(ncfile, "T", timeidx=timeidx)  # Potential temperature
         p = getvar(ncfile, "pressure", timeidx=timeidx)
-        return interplevel(tk, p, level) - 273.15  # Kelvin to Celsius
+        
+        # Validate inputs
+        if p is None or np.any(np.isnan(p)):
+            raise ValueError("Invalid pressure data")
+        if level < np.nanmin(p) or level > np.nanmax(p):
+            raise ValueError(f"Requested level {level}hPa outside available range")
+            
+        # Convert potential temperature to actual temperature
+        theta_interp = interplevel(theta, p, level)
+        temp_k = theta_interp / ((1000.0/level)**0.286)  # Convert to Kelvin
+        return temp_k - 273.15  # Convert to Celsius
     else:
         return getvar(ncfile, "T2", timeidx=timeidx) - 273.15
-
+    
 def get_humidity(ncfile, timeidx, level=None):
     if level:  # pressure-level RH
         rh = getvar(ncfile, "RH", timeidx=timeidx)

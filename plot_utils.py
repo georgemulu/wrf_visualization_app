@@ -64,9 +64,7 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
                 if var_type == 'Temperature (2m)':
                     temp = getvar(nc, 'T2', timeidx=time_idx) - 273.15
                 else:
-                    if 'tk' in nc.variables:
-                        temp_var = getvar(nc, 'tk', timeidx=time_idx)
-                    elif 'T' in nc.variables:
+                    if 'T' in nc.variables:
                         temp_var = getvar(nc, 'T', timeidx=time_idx)
                     else:
                             raise ValueError("No temperature variable (tk or T) found")
@@ -101,12 +99,17 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
                 return None, None
 
         elif var_type == 'Rainfall':
-            rain = getvar(nc, 'RAINNC', timeidx=time_idx) if 'RAINNC'in nc.variables else 0
-            rain+=getvar(nc, 'RAINC', timeidx=time_idx) if 'RAINC' in nc.variables else 0
-            levels = np.linspace(0, 50, 11)
-            contour = ax.contourf(lons, lats, data, levels=levels, cmap=cmap, transform=ccrs.PlateCarree(), extend='max')
-            plt.colorbar(contour, ax=ax, label='Rainfall (mm)')
-            current_data = data
+            try:
+                rain = getvar(nc, 'RAINNC', timeidx=time_idx) if 'RAINNC' in nc.variables else 0
+                rain += getvar(nc, 'RAINC', timeidx=time_idx) if 'RAINC' in nc.variables else 0
+                # Create plot
+                levels = np.linspace(0, 50, 11)
+                contour = ax.contourf(lons, lats, rain, levels=levels, cmap=cmap,transform=ccrs.PlateCarree(), extend='max')                  
+                plt.colorbar(contour, ax=ax, label='Rainfall (mm)')
+                current_data = rain
+            except Exception as e:
+                st.error(f"Rainfall plotting failed: {str(e)}")
+                return None, None
 
         # === HUMIDITY ===
         elif 'Humidity' in var_type or var_type == 'Relative Humidity':
