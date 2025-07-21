@@ -30,6 +30,7 @@ if nc:
 
     if var_type == 'pressure':
         pressure_level = st.selectbox("Select Pressure Level", level_options)
+        pressure_level = st.selectbox("Select Pressure Level", level_options)
 
     cmap_group = selected_var_name.split(' ')[0]
     cmap = st.selectbox("Colormap", CMAP_OPTIONS.get(cmap_group))

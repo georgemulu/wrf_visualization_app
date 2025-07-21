@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from dateutil.parser import parse
 from scipy import stats
-from config import FILE_ID
+from config import FILE_PATH
 from data_loader import load_wrf_data, get_available_variables
 from wrf import getvar, ALL_TIMES
 from metpy.plots import SkewT
@@ -87,7 +87,7 @@ st.markdown("""
 # --------------------------
 # Data Loading
 # --------------------------
-nc = load_wrf_data(FILE_ID)
+nc = load_wrf_data(FILE_PATH)
 
 if nc:
      
@@ -208,72 +208,66 @@ if nc:
             st.pyplot(fig3)
 
     with tab3:
-        st.header("🌡️ Atmospheric Profile Comparison (Skew-T: Today vs Yesterday)")
-
+        st.header("🌡 Atmospheric Profile (Skew-T)")
+    
         try:
-            # 1. Load necessary variables
+            # 1. Get raw variables with explicit unit conversion
             p = units.Quantity(nc.variables['P'][time_idx,:,:,:] + nc.variables['PB'][time_idx,:,:,:], 'Pa')
             t = units.Quantity(nc.variables['T'][time_idx,:,:,:] + 300.0, 'K')
             qv = units.Quantity(nc.variables['QVAPOR'][time_idx,:,:,:], 'kg/kg')
-
-            # 2. Previous day check
-            if time_idx > 0:
-                p_prev = units.Quantity(nc.variables['P'][time_idx-1,:,:,:] + nc.variables['PB'][time_idx-1,:,:,:], 'Pa')
-                t_prev = units.Quantity(nc.variables['T'][time_idx-1,:,:,:] + 300.0, 'K')
-                qv_prev = units.Quantity(nc.variables['QVAPOR'][time_idx-1,:,:,:], 'kg/kg')
-            else:
-                st.warning("No previous day available for comparison.")
-                p_prev = t_prev = qv_prev = None
-
-            # 3. Grid point (center)
+            
+            # 2. Select grid point
             i, j = t.shape[1]//2, t.shape[2]//2
-
-            # 4. Extract profiles (today)
+            
+            # 3. Extract 1D profiles (maintain units)
             pressure = p[:,i,j]
             temperature = t[:,i,j]
             qvapor = qv[:,i,j]
-            dewpoint = mpcalc.dewpoint_from_specific_humidity(pressure, temperature, qvapor)
-            parcel = mpcalc.parcel_profile(pressure, temperature[0], dewpoint[0])
-
-            # 5. Extract profiles (yesterday if available)
-            if p_prev is not None:
-                pressure_prev = p_prev[:,i,j]
-                temperature_prev = t_prev[:,i,j]
-                qvapor_prev = qv_prev[:,i,j]
-                dewpoint_prev = mpcalc.dewpoint_from_specific_humidity(pressure_prev, temperature_prev, qvapor_prev)
-                parcel_prev = mpcalc.parcel_profile(pressure_prev, temperature_prev[0], dewpoint_prev[0])
-            else:
-                pressure_prev = temperature_prev = dewpoint_prev = parcel_prev = None
-
-            # 6. Plotting
+            
+            # 4. Verify units
+            assert pressure.units == units.Pa, "Pressure has wrong units"
+            assert temperature.units == units.K, "Temperature has wrong units"
+            assert qvapor.units == units('kg/kg'), "QVAPOR has wrong units"
+            
+            # 5. Calculate dewpoint
+            dewpoint = mpcalc.dewpoint_from_specific_humidity(
+                pressure, 
+                temperature,
+                qvapor
+            )
+            
+            # 6. Create Skew-T plot
             fig = plt.figure(figsize=(10, 10))
             skew = SkewT(fig, rotation=45)
-
-            skew.plot(pressure, temperature.to('degC'), 'r', label='Temp (Today)')
-            skew.plot(pressure, dewpoint.to('degC'), 'g', label='Dewpoint (Today)')
-            skew.plot(pressure, parcel.to('degC'), 'k--', label='Parcel (Today)')
-
-            if pressure_prev is not None:
-                skew.plot(pressure_prev, temperature_prev.to('degC'), 'orange', label='Temp (Yesterday)')
-                skew.plot(pressure_prev, dewpoint_prev.to('degC'), 'lime', label='Dewpoint (Yesterday)')
-                skew.plot(pressure_prev, parcel_prev.to('degC'), 'gray', linestyle='--', label='Parcel (Yesterday)')
-
+            
+            # 7. Plot data (convert temp to °C for display)
+            skew.plot(pressure, temperature.to('degC'), 'r', label='Temperature')
+            skew.plot(pressure, dewpoint, 'g', label='Dewpoint')
+            
+            # 8. Add thermodynamic lines
             skew.plot_dry_adiabats()
             skew.plot_moist_adiabats()
             skew.plot_mixing_lines()
-
+            
+            # 9. Calculate parcel profile
+            parcel = mpcalc.parcel_profile(pressure, temperature[0], dewpoint[0])
+            skew.plot(pressure, parcel.to('degC'), 'k--', label='Parcel Path')
+            
+            # 10. Calculate indices
             cape, cin = mpcalc.cape_cin(pressure, temperature, dewpoint, parcel)
             lcl_p, _ = mpcalc.lcl(pressure[0], temperature[0], dewpoint[0])
-
-            plt.title(f'Skew-T Comparison at {selected_time_str}\n'
+            
+            plt.title(f'Skew-T at {selected_time_str}\n'
                     f'CAPE: {cape.m:.0f} J/kg | CIN: {cin.m:.0f} J/kg | LCL: {lcl_p.m:.0f} hPa',
                     loc='left')
             plt.legend()
             st.pyplot(fig)
-
+            
         except Exception as e:
             st.error(f"Skew-T generation failed: {str(e)}")
-            st.write("### Debug Info:")
+            
+            # Debug output
+            st.write("### Unit Verification:")
             for name, var in [('Pressure', 'p'), ('Temperature', 't'), ('QVAPOR', 'qv')]:
                 if var in locals():
                     st.write(f"{name}: {eval(var).units if hasattr(eval(var), 'units') else 'NO UNITS'}")

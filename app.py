@@ -1,7 +1,7 @@
 import streamlit as st
 
 # Set page config
-st.set_page_config(page_title="Weather Dashboard", layout="wide")
+st.set_page_config(page_title="Weather Dashboard", layout="centered", initial_sidebar_state="auto")
 
 # Custom CSS
 st.markdown("""
@@ -13,7 +13,6 @@ st.markdown("""
     }
 
     html, body {
-      font-family: 'Inter', sans-serif;
       background: linear-gradient(to right, #dbeafe, #f0f9ff);
       color: #222;
     }
