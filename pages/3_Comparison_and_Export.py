@@ -1,9 +1,12 @@
 import streamlit as st
+import pandas as pd
+import io
 from dateutil.parser import parse
 from config import FILE_ID,CMAP_OPTIONS,CMAP_OPTIONS
 from data_loader import load_wrf_data, get_available_variables
 from wrf import getvar, ALL_TIMES
-from plot_utils import create_plot, save_figure
+from plot_utils import create_plot, save_figure, summarize_over_county
+import numpy as np
 
 
 # == App Title ==
@@ -34,14 +37,17 @@ if nc:
     # == Load pressure level if needed ==    
     pressure_level = None
     if var_type == 'pressure':
-        pressure_level = st.selectbox("Select Pressure Level", pressure_levels)
+        pressure_level = st.selectbox("📉 Select Pressure Level", pressure_levels)
 
-    col1, col2 = st.columns(2)
+    # === Select Colormap ===
     cmap_group = selected_var_name.split(' ')[0] if selected_var_name != 'Relative Humidity' else 'Humidity'
-    cmap_options = CMAP_OPTIONS.get(cmap_group)
-    selected_cmap = st.selectbox("Select Colormap", cmap_options)
-    with col1:
-        fig1, _ = create_plot(nc, selected_var_name, time_idx, selected_cmap, pressure_level)
+    cmap_options = CMAP_OPTIONS.get(cmap_group, ["viridis"])
+    selected_cmap = st.selectbox("🎨 Select Colormap", cmap_options)
+
+    # === Plotting ===
+    col3, col4 = st.columns(2)
+    with col3:
+        fig1, field1 = create_plot(nc, selected_var_name, time_idx1, selected_cmap, pressure_level)
         if fig1:
             st.pyplot(fig1)
             st.caption(f"🕐 Time Step 1:{selected_time_str1}")
@@ -59,4 +65,4 @@ if nc:
         buf = save_figure(fig1)
         clean_time = parse(selected_time_str2).strftime("%Y%m%d_%H%M")
         filename = f"{selected_var_name.replace(' ', '_')}_{clean_time}.png"
-        st.download_button("Download Current Plot", data=buf, file_name=filename, mime="image/png")
+        st.download_button("🖼️ Download Time Step 2 Plot", data=buf, file_name=filename, mime="image/png")
