@@ -1,12 +1,26 @@
+# Core numerical packages (MUST come first)
 numpy==1.26.4
-matplotlib==3.8.2
-cartopy==0.22.0
-wrf-python==1.3.4.1
-netCDF4==1.6.5
-pandas==2.2.0
-geopandas==0.14.1
-shapely==2.0.2
-xarray==2023.12.0
-pyproj==3.6.1
 scipy==1.11.4
+pandas==2.2.0
+
+# Matplotlib and its dependencies
+matplotlib==3.8.2
+cycler==0.12.1
+fonttools==4.47.2
+kiwisolver==1.4.5
+pillow==10.1.0
+pyparsing==3.1.1
+
+# Geospatial packages
+cartopy==0.22.0
+shapely==2.0.2
+geopandas==0.14.1
+pyproj==3.6.1
+
+# WRF-specific packages
+netCDF4==1.6.5
+xarray==2023.12.0
+wrf-python==1.3.4.1
+
+# Streamlit
 streamlit==1.47.0

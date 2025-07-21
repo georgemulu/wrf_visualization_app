@@ -1,3 +1,5 @@
 libgeos-dev
 proj-bin
 libproj-dev
+libfreetype6-dev
+libpng-dev
