@@ -1,7 +1,7 @@
 import streamlit as st
 
 # Set page config
-st.set_page_config(page_title="Weather Dashboard", layout="wide")
+st.set_page_config(page_title="Weather Dashboard", layout="centered", initial_sidebar_state="auto")
 
 # Custom CSS
 st.markdown("""

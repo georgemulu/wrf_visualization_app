@@ -1,11 +1,15 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from dateutil.parser import parse
 from scipy import stats
 from config import FILE_PATH
 from data_loader import load_wrf_data, get_available_variables
 from wrf import getvar, ALL_TIMES
+from metpy.plots import SkewT
+from metpy.units import units
+import metpy.calc as mpcalc
 
 # --------------------------
 # Page Configuration
@@ -17,9 +21,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --------------------------
 # Custom CSS Styling
-# --------------------------
 st.markdown("""
 <style>
     /* Main gradient background */
@@ -88,6 +90,7 @@ st.markdown("""
 nc = load_wrf_data(FILE_PATH)
 
 if nc:
+     
     # --------------------------
     # Control Panel
     # --------------------------
@@ -101,7 +104,8 @@ if nc:
             selected_time_str = st.selectbox("⏰ Select Time Period", time_strs)
             time_idx = time_strs.index(selected_time_str)
         with col2:
-            selected_var_name = st.selectbox("📊 Select Variable", [v[0] for v in available_vars])
+            filtered_vars = [v for v in available_vars if v[0] !='Temperature' and 'Wind Speed' not in v[0]]
+            selected_var_name = st.selectbox("📊 Select Variable", [v[0] for v in filtered_vars])
         with col3:
             var_type = next(v[1] for v in available_vars if v[0] == selected_var_name)
             pressure_level = st.selectbox("↕ Pressure Level", pressure_levels) if var_type == 'pressure' else None
@@ -121,7 +125,7 @@ if nc:
     </script>
     """, unsafe_allow_html=True)
     
-    # Generate sample data (replace with your actual data)
+    # Generate sample data 
     time_points = np.arange(len(time_strs))
     current_data = 10 * np.sin(time_points/10) + 15 + np.random.normal(0, 2, len(time_strs))
     
@@ -129,62 +133,146 @@ if nc:
     # Data Visualization Section
     # --------------------------
     st.header("📊 DATA VISUALIZATION")
+
+    # Add a tab system to organize plots
+    tab1, tab2, tab3 = st.tabs(["Time Series", "Distributions", "Thermodynamic Analysis"])
     
-    # Main Time Series Plot
-    with st.container():
+    with tab1:
+        # Main Time Series Plot
+        with st.container():
 
-        fig, ax = plt.subplots(figsize=(10, 5))
+            fig, ax = plt.subplots(figsize=(14, 6))
 
-        fig, ax = plt.subplots(figsize=(12, 5))
+            # Convert time strings to datetime objects for plotting
+            time_dates = [parse(t) for t in time_strs]
 
-        ax.plot(time_points, current_data, color='#1f77b4', linewidth=2)
+            ax.plot(time_dates, current_data, color='#1f77b4', linewidth=2)
+            
+            # Add trend line
+            time_points = np.arange(len(time_dates))
+            z = np.polyfit(time_points, current_data, 1)
+            p = np.poly1d(z)
+            ax.plot(time_dates, p(time_points), "r--", label=f'Trend ({z[0]:.2f} units/hr)')
+            
+            ax.set_title(f"{selected_var_name} Time Series", fontsize=14, pad=15)
+            # ax.set_xlabel("Time", fontsize=12)
+            ax.set_ylabel(f"{selected_var_name} (units)", fontsize=12)
+
+            # Format x-axis to show dates 
+            ax.set_xticks(time_dates)  # Force all timestamps to be shown
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d %H:%M'))
+
+            # Rotate and align the tick labels
+            plt.setp(ax.get_xticklabels(), rotation=45, ha='right', rotation_mode='anchor')
+            
+            # Adjust margins to prevent label cutoff
+            plt.subplots_adjust(bottom=0.2)
+            
+            ax.grid(True, alpha=0.3)
+            ax.legend()
+            st.pyplot(fig)
+
+    with tab2:
+         # Distribution Analysis
+        col1, col2 = st.columns(2)
+        with col1:
+            fig2, ax2 = plt.subplots(figsize=(8, 5))
+            n, bins, patches = ax2.hist(current_data, bins=20, color='#1f77b4', alpha=0.7)
+            
+            # Add normal distribution curve
+            mu, sigma = np.mean(current_data), np.std(current_data)
+
+            y = ((1 / (np.sqrt(2 * np.pi) * sigma))) * \
+            np.exp(-0.5 * ((bins - mu) / sigma)**2) * \
+            len(current_data) * (bins[1] - bins[0])
+
+            y = ((1 / (np.sqrt(2 * np.pi) * sigma)) * 
+                np.exp(-0.5 * (1 / sigma * (bins - mu))**2) * len(current_data) * (bins[1] - bins[0]))
+
+            ax2.plot(bins, y, 'r--', linewidth=2)
+            
+            ax2.set_title("Value Distribution", fontsize=14)
+            ax2.set_xlabel(f"{selected_var_name} (units)", fontsize=12)
+            ax2.set_ylabel("Frequency", fontsize=12)
+            ax2.grid(True, alpha=0.3)
+            st.pyplot(fig2)
         
-        # Add trend line
-        z = np.polyfit(time_points, current_data, 1)
-        p = np.poly1d(z)
-        ax.plot(time_points, p(time_points), "r--", label=f'Trend ({z[0]:.2f} units/hr)')
-        
-        ax.set_title(f"{selected_var_name} Time Series", fontsize=14, pad=15)
-        ax.set_xlabel("Time Index (hours)", fontsize=12)
-        ax.set_ylabel(f"{selected_var_name} (units)", fontsize=12)
-        ax.grid(True, alpha=0.3)
-        ax.legend()
-        st.pyplot(fig)
+        with col2:
+            fig3, ax3 = plt.subplots(figsize=(8, 5))
+            ax3.boxplot(current_data, vert=False, patch_artist=True,
+                    boxprops=dict(facecolor='#1f77b4', alpha=0.7),
+                    medianprops=dict(color='red', linewidth=2))
+            
+            ax3.set_title("Statistical Distribution", fontsize=14)
+            ax3.set_xlabel(f"{selected_var_name} (units)", fontsize=12)
+            st.pyplot(fig3)
+
+    with tab3:
+        st.header("🌡️ Atmospheric Profile (Skew-T)")
     
-    # Distribution Analysis
-    col1, col2 = st.columns(2)
-    with col1:
-        fig2, ax2 = plt.subplots(figsize=(8, 5))
-        n, bins, patches = ax2.hist(current_data, bins=20, color='#1f77b4', alpha=0.7)
-        
-        # Add normal distribution curve
-        mu, sigma = np.mean(current_data), np.std(current_data)
-
-        y = ((1 / (np.sqrt(2 * np.pi) * sigma))) * \
-        np.exp(-0.5 * ((bins - mu) / sigma)**2) * \
-        len(current_data) * (bins[1] - bins[0])
-
-        y = ((1 / (np.sqrt(2 * np.pi) * sigma)) * 
-             np.exp(-0.5 * (1 / sigma * (bins - mu))**2) * len(current_data) * (bins[1] - bins[0]))
-
-        ax2.plot(bins, y, 'r--', linewidth=2)
-        
-        ax2.set_title("Value Distribution", fontsize=14)
-        ax2.set_xlabel(f"{selected_var_name} (units)", fontsize=12)
-        ax2.set_ylabel("Frequency", fontsize=12)
-        ax2.grid(True, alpha=0.3)
-        st.pyplot(fig2)
-    
-    with col2:
-        fig3, ax3 = plt.subplots(figsize=(8, 5))
-        ax3.boxplot(current_data, vert=False, patch_artist=True,
-                   boxprops=dict(facecolor='#1f77b4', alpha=0.7),
-                   medianprops=dict(color='red', linewidth=2))
-        
-        ax3.set_title("Statistical Distribution", fontsize=14)
-        ax3.set_xlabel(f"{selected_var_name} (units)", fontsize=12)
-        st.pyplot(fig3)
-    
+        try:
+            # 1. Get raw variables with explicit unit conversion
+            p = units.Quantity(nc.variables['P'][time_idx,:,:,:] + nc.variables['PB'][time_idx,:,:,:], 'Pa')
+            t = units.Quantity(nc.variables['T'][time_idx,:,:,:] + 300.0, 'K')
+            qv = units.Quantity(nc.variables['QVAPOR'][time_idx,:,:,:], 'kg/kg')
+            
+            # 2. Select grid point
+            i, j = t.shape[1]//2, t.shape[2]//2
+            
+            # 3. Extract 1D profiles (maintain units)
+            pressure = p[:,i,j]
+            temperature = t[:,i,j]
+            qvapor = qv[:,i,j]
+            
+            # 4. Verify units
+            assert pressure.units == units.Pa, "Pressure has wrong units"
+            assert temperature.units == units.K, "Temperature has wrong units"
+            assert qvapor.units == units('kg/kg'), "QVAPOR has wrong units"
+            
+            # 5. Calculate dewpoint
+            dewpoint = mpcalc.dewpoint_from_specific_humidity(
+                pressure, 
+                temperature,
+                qvapor
+            )
+            
+            # 6. Create Skew-T plot
+            fig = plt.figure(figsize=(10, 10))
+            skew = SkewT(fig, rotation=45)
+            
+            # 7. Plot data (convert temp to °C for display)
+            skew.plot(pressure, temperature.to('degC'), 'r', label='Temperature')
+            skew.plot(pressure, dewpoint, 'g', label='Dewpoint')
+            
+            # 8. Add thermodynamic lines
+            skew.plot_dry_adiabats()
+            skew.plot_moist_adiabats()
+            skew.plot_mixing_lines()
+            
+            # 9. Calculate parcel profile
+            parcel = mpcalc.parcel_profile(pressure, temperature[0], dewpoint[0])
+            skew.plot(pressure, parcel.to('degC'), 'k--', label='Parcel Path')
+            
+            # 10. Calculate indices
+            cape, cin = mpcalc.cape_cin(pressure, temperature, dewpoint, parcel)
+            lcl_p, _ = mpcalc.lcl(pressure[0], temperature[0], dewpoint[0])
+            
+            plt.title(f'Skew-T at {selected_time_str}\n'
+                    f'CAPE: {cape.m:.0f} J/kg | CIN: {cin.m:.0f} J/kg | LCL: {lcl_p.m:.0f} hPa',
+                    loc='left')
+            plt.legend()
+            st.pyplot(fig)
+            
+        except Exception as e:
+            st.error(f"Skew-T generation failed: {str(e)}")
+            
+            # Debug output
+            st.write("### Unit Verification:")
+            for name, var in [('Pressure', 'p'), ('Temperature', 't'), ('QVAPOR', 'qv')]:
+                if var in locals():
+                    st.write(f"{name}: {eval(var).units if hasattr(eval(var), 'units') else 'NO UNITS'}")
+                else:
+                    st.write(f"{name}: Not loaded")
     # --------------------------
     # Statistical Analysis
     # --------------------------
@@ -194,16 +282,7 @@ if nc:
         ("📉 Minimum", np.min(current_data), "Lowest observed value"),
         ("📈 Maximum", np.max(current_data), "Highest observed value"),
         ("📊 Mean", np.mean(current_data), "Average value"),
-
         ("📐 Std Dev", np.std(current_data), "Measure of variability"),
-        ("⟳ Skewness", stats.skew(current_data), "Distribution asymmetry"),
-        ("⏏ Kurtosis", stats.kurtosis(current_data), "Tail extremity"),
-        ("📌 Median", np.median(current_data), "Middle value"),
-        ("📐 Standard Deviation", np.std(current_data), "Measure of variability"),
-        ("⟳ Skewness", stats.skew(current_data), "Distribution asymmetry"),
-        ("⏏ Kurtosis", stats.kurtosis(current_data), "Tail extremity"),
-        ("📌 Median", np.median(current_data), "Middle value"),
-        ("🔍 Inter-Quartile Range", stats.iqr(current_data), "Middle 50% range")
     ]
     
     cols = st.columns(4)
@@ -217,88 +296,7 @@ if nc:
             </div>
             """, unsafe_allow_html=True)
     
-    # --------------------------
-    # Anomaly Detection
-    # --------------------------
-    if 'Temperature' in selected_var_name and (pressure_level == 850 or var_type == 'surface'):
-        st.header("⚠ ANOMALY DETECTION")
-        
-        climatology = 12.5 if pressure_level == 850 else 25.0
-        anomaly = np.mean(current_data) - climatology
-        z_score = anomaly / (np.std(current_data) / np.sqrt(len(current_data)))
-        
-        # Anomaly Visualization
-        fig4, ax4 = plt.subplots(figsize=(12, 5))
-        ax4.axhspan(climatology-1, climatology+1, facecolor='green', alpha=0.2, label='Normal range')
-        ax4.axhspan(climatology-2, climatology+2, facecolor='yellow', alpha=0.2, label='Alert range')
-        ax4.plot(time_points, current_data, color='#1f77b4', alpha=0.7)
-        ax4.axhline(climatology, color='black', linestyle='--', label='Climatology')
-        ax4.axhline(np.mean(current_data), color='red', label='Current mean')
-    
-        ax4.set_title(f"Temperature Anomaly Detection ({pressure_level or 'surface'} hPa)", fontsize=14)
-        ax4.set_xlabel("Time Index")
-        ax4.set_ylabel("Temperature (°C)")
-        ax4.legend()
-        # Enhanced Anomaly Visualization
-        fig4, ax4 = plt.subplots(figsize=(12, 5))
-
-        # Improved range colors with better visibility
-        ax4.axhspan(climatology-1, climatology+1, 
-                facecolor='#4CAF50', alpha=0.3,  # Brighter green
-                label='Normal range (±1°C)')
-        ax4.axhspan(climatology-2, climatology+2, 
-                facecolor='#FFC107', alpha=0.3,  # Brighter amber
-                label='Alert range (±2°C)')
-
-        # Extreme range (beyond ±2°C)
-        ax4.axhspan(climatology-5, climatology-2, 
-                facecolor='#FF5722', alpha=0.1,  # Orange-red
-                label='Extreme range')
-        ax4.axhspan(climatology+2, climatology+5, 
-                facecolor='#FF5722', alpha=0.1)
-
-        # Data and reference lines
-        ax4.plot(time_points, current_data, 
-                color='#1f77b4', linewidth=2, 
-                alpha=0.9, label='Observations')
-        ax4.axhline(climatology, 
-                color='#333333', linestyle='--', 
-                linewidth=2, label='Climatology')
-        ax4.axhline(np.mean(current_data), 
-                color='#E91E63', linewidth=2, 
-                label='Current mean')
-
-        # Styling
-        ax4.set_title(f"Temperature Anomaly Detection ({pressure_level or 'surface'} hPa)", 
-                    fontsize=14, pad=15)
-        ax4.set_xlabel("Time Index (hours)", fontsize=12)
-        ax4.set_ylabel("Temperature (°C)", fontsize=12)
-        ax4.grid(True, alpha=0.2)
-        ax4.legend(loc='upper right', framealpha=1)
-
-        st.pyplot(fig4)
-        
-        # Anomaly Metrics
-        anomaly_cols = st.columns(3)
-        with anomaly_cols[0]:
-            st.metric("🌡 Climatology", f"{climatology:.1f}°C")
-        with anomaly_cols[1]:
-            st.metric("🌡 Current Mean", f"{np.mean(current_data):.1f}°C", 
-                    delta=f"{anomaly:+.1f}°C", delta_color="inverse")
-        with anomaly_cols[2]:
-            st.metric("📊 Z-Score", f"{z_score:.2f}σ")
-        
-        # Interpretation
-        if abs(z_score) > 2.58:
-            st.error("🚨 Extreme anomaly detected (p < 0.01)")
-        elif abs(z_score) > 1.96:
-            st.warning("⚠ Significant anomaly detected (p < 0.05)")
-        else:
-            st.success("✅ No significant anomaly detected")
-
-# --------------------------
 # Footer
-# --------------------------
 st.markdown("""
 <div style="text-align: center; margin-top: 40px; color: #666666; font-size: 12px;">
     Weather Analytics Dashboard • Powered by WRF Model
