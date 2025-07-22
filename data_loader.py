@@ -1,24 +1,22 @@
 from netCDF4 import Dataset
+import requests
 from wrf import getvar, interplevel
 import streamlit as st
 import geopandas as gpd
 import numpy as np
-from config import STANDARD_PRESSURE_LEVELS, LOAD_FROM_DRIVE
-from drive_auth import authenticate_drive
+import io
+from config import STANDARD_PRESSURE_LEVELS, R2_PUBLIC_URL
 
 @st.cache_resource
-def load_wrf_data(file_path_or_id):
-    if LOAD_FROM_DRIVE:
-        return load_netcdf_from_drive(file_path_or_id)
-    else:
-        return Dataset(file_path_or_id)
+def load_wrf_data(_=None):
+    return load_netcdf_from_r2(R2_PUBLIC_URL)
 
-def load_netcdf_from_drive(file_id):
-    drive = authenticate_drive()
-    file = drive.CreateFile({'id': file_id})
-    temp_path = "temp.nc"
-    file.GetContentFile(temp_path)
-    return Dataset(temp_path)
+def load_netcdf_from_r2(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    memory_file = io.BytesIO(response.content)
+    return Dataset('inmemory.nc', mode='r', memory=memory_file.read())
+
 
 def get_available_variables(nc):
     available = []

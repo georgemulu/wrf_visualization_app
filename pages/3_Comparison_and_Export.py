@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 from dateutil.parser import parse
-from config import FILE_ID,CMAP_OPTIONS,CMAP_OPTIONS
+from config import CMAP_OPTIONS,CMAP_OPTIONS, R2_PUBLIC_URL
 from data_loader import load_wrf_data, get_available_variables
 from wrf import getvar, ALL_TIMES
 from plot_utils import create_plot, save_figure, summarize_over_county
@@ -13,7 +13,7 @@ import numpy as np
 st.title("🆚 Forecast Comparison Mode")
 
 # ==Load NetCDF4 Data ==
-nc = load_wrf_data(FILE_ID)
+nc = load_wrf_data(R2_PUBLIC_URL)
 
 if nc:
     # == Load Available Varibles ==
@@ -47,7 +47,7 @@ if nc:
     # === Plotting ===
     col3, col4 = st.columns(2)
     with col3:
-        fig1, field1 = create_plot(nc, selected_var_name, time_idx1, selected_cmap, pressure_level)
+        fig1, field1 = create_plot(nc, selected_var_name, time_idx, selected_cmap, pressure_level)
         if fig1:
             st.pyplot(fig1)
             st.caption(f"🕐 Time Step 1:{selected_time_str1}")
