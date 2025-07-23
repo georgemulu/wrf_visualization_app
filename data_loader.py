@@ -3,6 +3,7 @@ from wrf import getvar, interplevel
 import streamlit as st
 import geopandas as gpd
 import numpy as np
+import io
 from config import STANDARD_PRESSURE_LEVELS, LOAD_FROM_DRIVE
 from drive_auth import authenticate_drive
 
@@ -16,9 +17,11 @@ def load_wrf_data(file_path_or_id):
 def load_netcdf_from_drive(file_id):
     drive = authenticate_drive()
     file = drive.CreateFile({'id': file_id})
-    temp_path = "temp.nc"
-    file.GetContentFile(temp_path)
-    return Dataset(temp_path)
+    file.FetchMetadata()
+
+    file_bytes = file.GetContentString(encoding=None).encode('latin1')
+    file_content = io.BytesIO(file_bytes)
+    return Dataset('inmemory.nc', mode='r', memory= file_content.read())
 
 def get_available_variables(nc):
     available = []
