@@ -3,14 +3,19 @@ from wrf import getvar, interplevel
 import streamlit as st
 import geopandas as gpd
 import numpy as np
-from config import STANDARD_PRESSURE_LEVELS
+from config import STANDARD_PRESSURE_LEVELS,FILE_PATH
+import requests
+import io
 
-def load_wrf_data(file_path):
-    try:
-        return Dataset(file_path)
-    except Exception as e:
-        st.error(f"Error loading file: {e}")
-        return None
+@st.cache_resource
+def load_wrf_data(_=None):
+    return load_netcdf_from_path(FILE_PATH)
+
+def load_netcdf_from_path(url):
+    response = requests.get(url)
+    response.raise_for_status()  # Ensure we got a valid response
+    memory_file = io.BytesIO(response.content)
+    return Dataset('inmemory.nc', mode='r',memory=memory_file.read())
 
 def get_available_variables(nc):
     available = []
