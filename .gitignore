@@ -1,0 +1,23 @@
+#Python cache files
+__pycache__/
+*.py[cod]
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+
+#ide specific files
+.idea/
+.vscode/
+.*swp
+.*swo
+
+Environment files
+environment.yaml
+.env
+.venv/
+venv/
+env/
+
+#Streaamlit secrets
+.secrets.toml
+

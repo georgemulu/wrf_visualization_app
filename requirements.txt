@@ -1,0 +1,15 @@
+streamlit
+matplotlib
+cartopy
+wrf-python
+netCDF4
+numpy
+pandas
+geopandas
+shapely
+xarray
+pyproj
+scipy
+beautifulsoup4
+gdown
+metpy
