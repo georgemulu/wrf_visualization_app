@@ -33,7 +33,6 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
 
         # === WIND ===
         if 'Wind Speed' in var_type:
-            data = get_wind_speed(nc, timeidx=time_idx, level=pressure_level if 'pressure' in var_type else None)
             u, v = None, None
 
             if '10m' in var_type:
@@ -47,7 +46,7 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
                 p = getvar(nc, 'pressure', timeidx=time_idx)
                 u = interplevel(u, p, pressure_level)
                 v = interplevel(v, p, pressure_level)
-                wind_speed = np.sqrt(u**2 + v**2)
+            wind_speed = np.sqrt(u**2 + v**2)
 
             # --- DRAW BACKGROUND FEATURES ---
             ax.add_feature(cfeature.OCEAN.with_scale('10m'), facecolor='lightblue')
