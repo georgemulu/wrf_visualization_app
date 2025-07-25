@@ -3,7 +3,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import numpy as np
 import geopandas as gpd
-from wrf import getvar, interplevel, destagger, latlon_coords, to_np
+from wrf import getvar, latlon_coords, to_np
 from cartopy.io.shapereader import Reader
 from cartopy.feature import ShapelyFeature
 import streamlit as st
@@ -22,7 +22,7 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
     ax.set_extent([33.5, 42.0, -5.0, 5.5], crs=ccrs.PlateCarree())
 
     try:
-        # === Get Lat/Lon ===
+        # === Get Lat/Lon T & T2 as reference ===
         if '2m' in var_type or '10m' in var_type:
             lats, lons = latlon_coords(getvar(nc, "T2", timeidx=time_idx))
         else:
@@ -33,26 +33,14 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
 
         # === WIND ===
         if 'Wind Speed' in var_type:
-            data = get_wind_speed(nc, timeidx=time_idx, level=pressure_level if 'pressure' in var_type else None)
-            u, v = None, None
+            if pressure_level is None and '10m' not in var_type:
+                try:
+                    level_str = var_type.split('(')[-1].replace('hpa)', '').strip()
+                    pressure_level = int(level_str)
+                except Exception:
+                    st.error("Invalid pressure level format in variable name. ")  
 
-            if '10m' in var_type:
-                u = getvar(nc, 'U10', timeidx=time_idx)
-                v = getvar(nc, 'V10', timeidx=time_idx)
-            else:
-                u = getvar(nc, 'U', timeidx=time_idx)
-                v = getvar(nc, 'V', timeidx=time_idx)
-                u = destagger(u, stagger_dim=-1)
-                v = destagger(v, stagger_dim=-2)
-                p = getvar(nc, 'pressure', timeidx=time_idx)
-                u = interplevel(u, p, pressure_level)
-                v = interplevel(v, p, pressure_level)
-                wind_speed = np.sqrt(u**2 + v**2)
-
-            # --- DRAW BACKGROUND FEATURES ---
-            ax.add_feature(cfeature.OCEAN.with_scale('10m'), facecolor='lightblue')
-            ax.add_feature(cfeature.LAKES.with_scale('10m'), facecolor='lightblue', edgecolor='blue')
-            ax.add_feature(cfeature.LAND.with_scale('10m'), facecolor='#e0dccd')  # light beige land
+            u, v, Wind_Speed = get_wind_speed(nc, time_idx, level=pressure_level if '10m' not in var_type else None)   
 
             subset = 10
             ax.barbs(to_np(lons[::subset, ::subset]), to_np(lats[::subset, ::subset]),
@@ -60,47 +48,37 @@ def create_plot(nc, var_type, time_idx=0, cmap='viridis', pressure_level=None):
                     length=6, color='black', linewidth=0.5,
                     transform=ccrs.PlateCarree()
                     ) 
-            current_data = wind_speed
+            
+            # --- DRAW BACKGROUND FEATURES ---
+            ax.add_feature(cfeature.OCEAN.with_scale('10m'), facecolor='lightblue')
+            ax.add_feature(cfeature.LAKES.with_scale('10m'), facecolor='lightblue', edgecolor='blue')
+            ax.add_feature(cfeature.LAND.with_scale('10m'), facecolor='#e0dccd')  # light beige land
+            current_data = Wind_Speed
 
         # === TEMPERATURE ===
-        elif 'Temperature' in var_type:
-            if var_type == 'Temperature (2m)':
-                temp = getvar(nc, 'T2', timeidx=time_idx) - 273.15
-            else:
-                tk = getvar(nc, 'tk', timeidx=time_idx) -273.15
-                p = getvar(nc, 'pressure', timeidx=time_idx)
-                temp = interplevel(tk, p, pressure_level)
+        elif 'Temperature' in var_type:               
+            temp = get_temperature(nc, time_idx, level=pressure_level)
             levels = np.linspace(np.min(temp), np.max(temp), 20)
             contour = ax.contourf(lons, lats, temp, levels=levels, cmap=cmap, transform=ccrs.PlateCarree())
             plt.colorbar(contour, ax=ax, label=f'Temperature (°C) at {pressure_level} hPa' if pressure_level else 'Temperature (°C)')
             current_data = temp
 
         elif var_type == 'Rainfall':
-            rain = getvar(nc, 'RAINNC', timeidx=time_idx)
-            rain += getvar(nc, 'RAINC', timeidx=time_idx)
+            rain = get_rainfall(nc, time_idx)
             levels = np.linspace(0, 50, 11)
             contour = ax.contourf(lons, lats, rain, levels=levels, cmap=cmap, transform=ccrs.PlateCarree(), extend='max')
             plt.colorbar(contour, ax=ax, label='Rainfall (mm)')
             current_data = rain
 
-        elif  var_type == 'Humidity (2m)':
-                    hum2 = getvar(nc, 'Q2', timeidx=time_idx) * 1000
-                    label = 'Specific Humidity (g/kg)'
-                    levels = np.linspace(0, 20, 11)
-                    contour = ax.contourf(lons, lats, hum2, levels=levels, cmap=cmap, transform=ccrs.PlateCarree())
-                    plt.colorbar(contour, ax=ax, label=f'{label} at {pressure_level} hPa' if pressure_level else label)
-                    current_data = hum2
+        elif  'Humidity' in var_type:
+            rh = get_humidity(nc, time_idx, level=pressure_level)
+            levels = np.linspace(np.nanmin(rh), 20)
+            contour = ax.contourf(lons, lats, rh, levels=levels, cmap=cmap, transform=ccrs.PlateCarree())
+            cb_label = f"Humidity (% RH) at {pressure_level} hpa" if pressure_level else "Specific Humidity (g/kg)"
+            plt.colorbar(contour, ax=ax, label=cb_label)
 
-        elif var_type == 'Relative Humidity':
-                rh = getvar(nc, 'rh', timeidx=time_idx)
-                p = getvar(nc, 'pressure', timeidx=time_idx)
-                hum = interplevel(rh, p, pressure_level)
-                label = 'Relative Humidity (%)'
-                levels = np.linspace(0, 100, 11)
-                contour = ax.contourf(lons, lats, hum, levels=levels, cmap=cmap, transform=ccrs.PlateCarree())
-                plt.colorbar(contour, ax=ax, label=f'{label} at {pressure_level} hPa' if pressure_level else label)
-                current_data = hum
-
+            current_data = rh
+        
         # === Background Features ===
         ax.add_feature(cfeature.OCEAN.with_scale('10m'), facecolor='lightblue')
         ax.add_feature(cfeature.LAKES.with_scale('10m'), facecolor='lightblue', edgecolor='blue')
