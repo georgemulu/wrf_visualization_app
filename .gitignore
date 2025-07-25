@@ -1,0 +1,14 @@
+client_secret_457711328510-5e97v9c5u620j9ros5h0gk5294d6jn7g.apps.googleusercontent.com.json
+client_secrets.json
+_pycache_/*
+credentials.json
+_pycache_/*
+drive.* data_loader.py config. __pycache__ app.py client_secrets.json config.py credentials.json data_loader.py drive_auth.py environment.yaml pages plot_utils.py readme.md temp.nc
+temp.nc
+*.n
+_pycache_/config.*
+<<<<<<< HEAD
+gadm41_*
+=======
+gadm41_KEN_1.*
+>>>>>>> add_google-auth
