@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from dateutil.parser import parse
 from scipy import stats
-from config import FILE_PATH
+from config import R2_PUBLIC_URL
 from data_loader import load_wrf_data, get_available_variables
 from wrf import getvar, ALL_TIMES
 from metpy.plots import SkewT
@@ -87,7 +87,7 @@ st.markdown("""
 # --------------------------
 # Data Loading
 # --------------------------
-nc = load_wrf_data(FILE_PATH)
+nc = load_wrf_data(R2_PUBLIC_URL)
 
 if nc:
      
