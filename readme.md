@@ -13,10 +13,11 @@ This is a multi-page Streamlit application for visualizing meteorological data f
   - Humidity (Specific/Relative)
 - Overlay Kenyan county boundaries for context.
 - Customize colormap and pressure levels.
-- Display statistics (min, max, mean, std) for selected variables.
-- Detect anomalies in temperature values compared to a basic climatology.
+- Display statistics (min, max, mean) for selected variables in selected counties.
 - Compare two consecutive time steps side-by-side.
 - Export generated plots as PNG.
+
+✅ **Fetch WRF output files directly from a Cloudflare R2 bucket** for faster access and cloud integration.
 
 --
 
@@ -31,16 +32,22 @@ This is a multi-page Streamlit application for visualizing meteorological data f
 - geopandas
 - numpy
 - python-dateutil
+- metpy
+- scipy
 
 Install dependencies using:
-```
+
+```bash
 conda env create -f environment.yaml
 ```
+
 🚀 **Running the App**
-```
+
+```bash
 cd wrf_visualization_app
 streamlit run app.py
 ```
+
 Make sure to:
 
 Update the FILE_PATH and COUNTY_SHAPEFILE_PATH in config.py to your local dataset and shapefile paths.
@@ -49,7 +56,7 @@ Confirm the NetCDF file is a valid WRF output file.
 
 📍 **Note**
 
-This app is designed for WRF outputs specific to Kenya and includes built-in handling of pressure-level variables and 2D surface values. Customize the anomaly logic or styling further as needed.
+This app is designed for WRF outputs specific to Kenya and includes built-in handling of pressure-level variables and 2D surface values. Customize the styling as needed.
 
 📧 **Support**
 
