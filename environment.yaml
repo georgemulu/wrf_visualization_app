@@ -15,11 +15,8 @@ dependencies:
   - xarray
   - pyproj
   - scipy  # Optional, if doing stats
-  - pip
+  - metpy
   - pip:
       - beautifulsoup4
       - gdown
-      - google-api-python-client
-      - google-auth-httplib2
-      - google-auth-oauthlib
-      - pydrive2
+    
