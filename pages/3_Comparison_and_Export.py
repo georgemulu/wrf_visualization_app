@@ -3,7 +3,7 @@ import pandas as pd
 import io
 from dateutil.parser import parse
 from config import CMAP_OPTIONS,CMAP_OPTIONS, R2_PUBLIC_URL
-from data_loader import load_wrf_data, get_available_variables
+from data_loader import load_wrf_data_from_r2, get_available_variables
 from wrf import getvar, ALL_TIMES
 from plot_utils import create_plot, save_figure, summarize_over_county
 import numpy as np
@@ -13,7 +13,7 @@ import numpy as np
 st.title("🆚 Forecast Comparison Mode")
 
 # ==Load NetCDF4 Data ==
-nc = load_wrf_data(R2_PUBLIC_URL)
+nc , xr_ds = load_wrf_data_from_r2()
 
 if nc:
     # == Load Available Varibles ==
@@ -56,7 +56,7 @@ if nc:
             fig2, field2 = create_plot(nc, selected_var_name, time_idx2, selected_cmap, pressure_level)
             if fig2:
                 st.pyplot(fig2)
-                st.caption(f"🕐 Time Step 1:{selected_time_str2}")
+                st.caption(f"🕐 Time Step 2:{selected_time_str2}")
 
     if fig1 and fig2:
         selected_plot = st.selectbox("🖼️ Choose Plot to Download", ["Time Step 1", "Time Step 2"])
