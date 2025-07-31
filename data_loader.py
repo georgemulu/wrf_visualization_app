@@ -1,4 +1,5 @@
 from netCDF4 import Dataset
+import xarray as xr
 import requests
 from wrf import destagger, getvar, interplevel
 import streamlit as st
@@ -8,14 +9,22 @@ import io
 from config import STANDARD_PRESSURE_LEVELS, R2_PUBLIC_URL
 
 @st.cache_resource
-def load_wrf_data(_=None):
-    return load_netcdf_from_r2(R2_PUBLIC_URL)
+def load_wrf_data_from_r2(_=None):
+    netcdf_dataset = load_netcdf_datasets(R2_PUBLIC_URL)
+    xarray_dataset = load_xarray_datasets(R2_PUBLIC_URL)
+    return netcdf_dataset, xarray_dataset
 
-def load_netcdf_from_r2(url):
+def load_netcdf_datasets(url):
     response = requests.get(url)
     response.raise_for_status()
     memory_file = io.BytesIO(response.content)
     return Dataset('inmemory.nc', mode='r', memory=memory_file.read())
+
+def load_xarray_datasets(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    memory_file = io.BytesIO(response.content)
+    return xr.open_dataset(memory_file)
 
 
 def get_available_variables(nc):
