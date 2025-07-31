@@ -29,10 +29,10 @@ if nc:
     col1, col2 = st.columns(2)
     with col1:
       selected_time_str1 = st.selectbox("Select Time Step 1", time_strs, key="time1")
-      time_idx = time_strs.index(selected_time_str1)
+      time_idx1 = time_strs.index(selected_time_str1)
     with col2:
         selected_time_str2 = st.selectbox("Select Time Step 2", time_strs, key="time2")
-        time_idx = time_strs.index(selected_time_str2)
+        time_idx2 = time_strs.index(selected_time_str2)
 
     # == Load pressure level if needed ==    
     pressure_level = None
@@ -47,19 +47,16 @@ if nc:
     # === Plotting ===
     col3, col4 = st.columns(2)
     with col3:
-        fig1, field1 = create_plot(nc, selected_var_name, time_idx, selected_cmap, pressure_level)
+        fig1, field1 = create_plot(nc, selected_var_name, time_idx1, selected_cmap, pressure_level)
         if fig1:
             st.pyplot(fig1)
             st.caption(f"🕐 Time Step 1:{selected_time_str1}")
 
     with col4:
-        if time_idx < len(time_strs) - 1:
-            fig2, _ = create_plot(nc, selected_var_name, time_idx, selected_cmap, pressure_level)
+            fig2, field2 = create_plot(nc, selected_var_name, time_idx2, selected_cmap, pressure_level)
             if fig2:
                 st.pyplot(fig2)
-                st.caption(f"🕐 Time Step 2: {selected_time_str2}")
-        else:
-            st.info("No future timestep available.")
+                st.caption(f"🕐 Time Step 1:{selected_time_str2}")
 
     if fig1 and fig2:
         selected_plot = st.selectbox("🖼️ Choose Plot to Download", ["Time Step 1", "Time Step 2"])

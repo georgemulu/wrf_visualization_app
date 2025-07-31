@@ -2,14 +2,17 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import tephi
+import xarray as xr
 from dateutil.parser import parse
 from scipy import stats
 from config import R2_PUBLIC_URL
-from data_loader import load_wrf_data, get_available_variables
+from data_loader import load_wrf_data_from_r2, get_available_variables
 from wrf import getvar, ALL_TIMES
 from metpy.plots import SkewT
 from metpy.units import units
 import metpy.calc as mpcalc
+import io
 
 # --------------------------
 # Page Configuration
@@ -87,7 +90,7 @@ st.markdown("""
 # --------------------------
 # Data Loading
 # --------------------------
-nc = load_wrf_data(R2_PUBLIC_URL)
+nc, xr_ds = load_wrf_data_from_r2()
 
 if nc:
      
@@ -135,7 +138,7 @@ if nc:
     st.header("📊 DATA VISUALIZATION")
 
     # Add a tab system to organize plots
-    tab1, tab2, tab3 = st.tabs(["Time Series", "Distributions", "Thermodynamic Analysis"])
+    tab1, tab2, tab3 = st.tabs(["Time Series", "Distributions", "Tephigram"])
     
     with tab1:
         # Main Time Series Plot
@@ -207,72 +210,67 @@ if nc:
             ax3.set_xlabel(f"{selected_var_name} (units)", fontsize=12)
             st.pyplot(fig3)
 
-    with tab3:
-        st.header("🌡 Atmospheric Profile (Skew-T)")
-    
-        try:
-            # 1. Get raw variables with explicit unit conversion
-            p = units.Quantity(nc.variables['P'][time_idx,:,:,:] + nc.variables['PB'][time_idx,:,:,:], 'Pa')
-            t = units.Quantity(nc.variables['T'][time_idx,:,:,:] + 300.0, 'K')
-            qv = units.Quantity(nc.variables['QVAPOR'][time_idx,:,:,:], 'kg/kg')
-            
-            # 2. Select grid point
-            i, j = t.shape[1]//2, t.shape[2]//2
-            
-            # 3. Extract 1D profiles (maintain units)
-            pressure = p[:,i,j]
-            temperature = t[:,i,j]
-            qvapor = qv[:,i,j]
-            
-            # 4. Verify units
-            assert pressure.units == units.Pa, "Pressure has wrong units"
-            assert temperature.units == units.K, "Temperature has wrong units"
-            assert qvapor.units == units('kg/kg'), "QVAPOR has wrong units"
-            
-            # 5. Calculate dewpoint
-            dewpoint = mpcalc.dewpoint_from_specific_humidity(
-                pressure, 
-                temperature,
-                qvapor
-            )
-            
-            # 6. Create Skew-T plot
-            fig = plt.figure(figsize=(10, 10))
-            skew = SkewT(fig, rotation=45)
-            
-            # 7. Plot data (convert temp to °C for display)
-            skew.plot(pressure, temperature.to('degC'), 'r', label='Temperature')
-            skew.plot(pressure, dewpoint, 'g', label='Dewpoint')
-            
-            # 8. Add thermodynamic lines
-            skew.plot_dry_adiabats()
-            skew.plot_moist_adiabats()
-            skew.plot_mixing_lines()
-            
-            # 9. Calculate parcel profile
-            parcel = mpcalc.parcel_profile(pressure, temperature[0], dewpoint[0])
-            skew.plot(pressure, parcel.to('degC'), 'k--', label='Parcel Path')
-            
-            # 10. Calculate indices
-            cape, cin = mpcalc.cape_cin(pressure, temperature, dewpoint, parcel)
-            lcl_p, _ = mpcalc.lcl(pressure[0], temperature[0], dewpoint[0])
-            
-            plt.title(f'Skew-T at {selected_time_str}\n'
-                    f'CAPE: {cape.m:.0f} J/kg | CIN: {cin.m:.0f} J/kg | LCL: {lcl_p.m:.0f} hPa',
-                    loc='left')
-            plt.legend()
-            st.pyplot(fig)
-            
-        except Exception as e:
-            st.error(f"Skew-T generation failed: {str(e)}")
-            
-            # Debug output
-            st.write("### Unit Verification:")
-            for name, var in [('Pressure', 'p'), ('Temperature', 't'), ('QVAPOR', 'qv')]:
-                if var in locals():
-                    st.write(f"{name}: {eval(var).units if hasattr(eval(var), 'units') else 'NO UNITS'}")
-                else:
-                    st.write(f"{name}: Not loaded")
+        with tab3:
+            st.header("🌡 Tephigram")
+            try:
+
+                # Load WRF output
+                ds = xr_ds
+
+                # Define Nairobi grid point (adjust as needed)
+                i, j = 40, 38
+
+                # Extract base + perturbation pressure and temperature
+                P = ds['P'] + ds['PB']                         # Total pressure [Pa]
+                T = (ds['T'] + 300)                            # Potential temperature [K]
+                QV = ds['QVAPOR']                              # Water vapor mixing ratio [kg/kg]
+
+                # Get two time indices (hardcoded for now; can be improved later)
+                t1, t2 = 0, 8  # 2024-05-20_06:00:00 and 2024-05-21_06:00:00
+
+                def get_profile(time_idx):
+                    pressure = P[time_idx, :, j, i].values / 100  # Convert to hPa
+                    theta = T[time_idx, :, j, i].values
+                    qv = QV[time_idx, :, j, i].values
+
+                    temp = theta / ((1000 / pressure) ** 0.286)  # Actual temperature
+
+                    # Calculate dewpoint from vapor pressure
+                    e = (qv * pressure) / (0.622 + qv)
+                    dewpoint = (243.5 * np.log(e / 6.112)) / (17.67 - np.log(e / 6.112))
+                    return pressure, temp, dewpoint
+
+                # Extract both profiles
+                p1, t1_vals, td1_vals = get_profile(t1)
+                p2, t2_vals, td2_vals = get_profile(t2)
+
+                # Zip into tephi format
+                temp_zip_1 = zip(p1, t1_vals)
+                dewpoint_zip_1 = zip(p1, td1_vals)
+                temp_zip_2 = zip(p2, t2_vals)
+                dewpoint_zip_2 = zip(p2, td2_vals)
+
+                # Customize tephigram
+                tephi.MIXING_RATIO_LINE.update({'color': 'purple', 'linewidth': 1, 'linestyle': '--'})
+                tpg = tephi.Tephigram(anchor=[(850, 30), (100, -100)])
+
+                # Plot 1st radiosonde (dashed)
+                tpg.plot(temp_zip_1, linestyle='--', color='red')
+                tpg.plot(dewpoint_zip_1, linestyle='--', color='blue')
+
+                # Plot 2nd radiosonde (solid)
+                tpg.plot(temp_zip_2, linestyle='-', color='red')
+                tpg.plot(dewpoint_zip_2, linestyle='-', color='blue')
+
+                # Add title
+                plt.suptitle('Nairobi Tephigram:\n2024-05-20_06:00 (Dashed) vs 2024-05-21_06:00 (Solid)', fontsize=14)
+
+                # Show in Streamlit
+                st.pyplot(plt)
+
+            except Exception as e:
+                st.error(f"Tephigram generation failed: {str(e)}")
+
     # --------------------------
     # Statistical Analysis
     # --------------------------

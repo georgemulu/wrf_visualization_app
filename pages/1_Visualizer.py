@@ -1,13 +1,13 @@
 import streamlit as st
 from config import CMAP_OPTIONS, STANDARD_PRESSURE_LEVELS, R2_PUBLIC_URL
-from data_loader import load_wrf_data, get_available_variables
+from data_loader import load_wrf_data_from_r2, get_available_variables
 from wrf import getvar, ALL_TIMES
 from dateutil.parser import parse
 from plot_utils import create_plot
 
 st.title("📡 WRF Variable Visualizer")
 
-nc = load_wrf_data(R2_PUBLIC_URL)
+nc, xr_ds = load_wrf_data_from_r2()
 if nc:
     available_vars, pressure_levels = get_available_variables(nc)
     times = getvar(nc, 'times', timeidx=ALL_TIMES)
