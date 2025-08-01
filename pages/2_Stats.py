@@ -6,8 +6,8 @@ import tephi
 import xarray as xr
 from dateutil.parser import parse
 from scipy import stats
-from config import FILE_PATH
-from data_loader import load_wrf_data, get_available_variables
+from config import R2_PUBLIC_URL
+from data_loader import load_wrf_data_from_r2, get_available_variables
 from wrf import getvar, ALL_TIMES
 from metpy.plots import SkewT
 from metpy.units import units
@@ -90,7 +90,7 @@ st.markdown("""
 # --------------------------
 # Data Loading
 # --------------------------
-nc = load_wrf_data(FILE_PATH)
+nc, xr_ds = load_wrf_data_from_r2()
 
 if nc:
      
@@ -212,11 +212,10 @@ if nc:
 
         with tab3:
             st.header("🌡 Tephigram")
-
             try:
 
                 # Load WRF output
-                ds = xr.open_dataset(FILE_PATH)
+                ds = xr_ds
 
                 # Define Nairobi grid point (adjust as needed)
                 i, j = 40, 38
@@ -271,12 +270,6 @@ if nc:
 
             except Exception as e:
                 st.error(f"Tephigram generation failed: {str(e)}")
-
-
-
-
-
-
 
     # --------------------------
     # Statistical Analysis
